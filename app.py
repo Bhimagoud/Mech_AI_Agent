@@ -24,6 +24,7 @@ from flask_cors import CORS
 
 from orchestrator import run_pipeline, run_pipeline_stream
 from services.document_ingestor import ingest_document
+import services.llm_router as llm_router
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -66,6 +67,9 @@ def analyze():
     if "sar_file" not in request.files:
         return jsonify({"status": "error", "error": "No SAR file uploaded."}), 400
 
+    if "llm_provider" in request.form:
+        llm_router.PROVIDER = request.form["llm_provider"].strip().lower()
+
     sar_file = request.files["sar_file"]
     sar_bytes = sar_file.read()
     sar_filename = sar_file.filename
@@ -106,6 +110,9 @@ def analyze_manual():
     peos = data.get("peos", [])
     missions = data.get("missions", [])
 
+    if "llm_provider" in data:
+        llm_router.PROVIDER = data["llm_provider"].strip().lower()
+
     if not peos:
         return jsonify({"status": "error", "error": "No PEOs provided."}), 400
     if not missions:
@@ -136,6 +143,9 @@ def analyze_stream():
     """
     if "sar_file" not in request.files:
         return jsonify({"status": "error", "error": "No SAR file uploaded."}), 400
+
+    if "llm_provider" in request.form:
+        llm_router.PROVIDER = request.form["llm_provider"].strip().lower()
 
     sar_file = request.files["sar_file"]
     sar_bytes = sar_file.read()
@@ -182,6 +192,9 @@ def analyze_manual_stream():
     data = request.get_json(force=True, silent=True) or {}
     peos = data.get("peos", [])
     missions = data.get("missions", [])
+
+    if "llm_provider" in data:
+        llm_router.PROVIDER = data["llm_provider"].strip().lower()
 
     if not peos:
         return jsonify({"status": "error", "error": "No PEOs provided."}), 400

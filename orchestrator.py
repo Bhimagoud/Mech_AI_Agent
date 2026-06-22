@@ -21,6 +21,7 @@ import logging
 import traceback
 
 from services.document_ingestor import ingest_document, build_context_from_manual
+from services import rag_service
 from agents.agent1_peo_deconstructor import deconstruct_peos
 from agents.agent2_mission_deconstructor import deconstruct_missions
 from agents.agent3_correlation_scorer import score_correlations
@@ -81,6 +82,11 @@ def run_pipeline(
         # ------------------------------------------------------------------ #
         logger.info("[Pipeline] Step 0: Ingesting SAR document '%s'", sar_filename)
         sar_data = ingest_document(sar_bytes, sar_filename)
+
+        # Ingest and index the full text into RAG service
+        rag_service.clear()
+        if "full_text" in sar_data and sar_data["full_text"]:
+            rag_service.ingest_and_index(sar_data["full_text"], source=sar_filename)
 
         # Allow caller to override extracted PEOs / missions
         peos = extra_peos if extra_peos else sar_data["peos"]

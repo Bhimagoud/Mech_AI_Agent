@@ -30,6 +30,14 @@ WORKDIR /app
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local
 
+# Set cache directory for Hugging Face models
+ENV HF_HOME=/app/.cache
+
+# Pre-download RAG embedding model so it's baked into the image
+RUN mkdir -p /app/.cache && \
+    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" && \
+    chown -R appuser:appuser /app/.cache
+
 # Copy project source
 COPY --chown=appuser:appuser agents/      agents/
 COPY --chown=appuser:appuser services/    services/

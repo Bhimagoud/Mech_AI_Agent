@@ -6,13 +6,17 @@ Responsibility:
   structured JSON object that maps each DM ID to its deconstructed
   objective components — mirroring the same dimensions used for PEOs
   so that Agent 3 can perform aligned semantic comparison.
+
+RAG-enhanced: Retrieves relevant mission/department context from the
+indexed SAR document to ground the deconstruction in actual document content.
 """
 
 import json
 import logging
 import re
 
-from services.llm_client import call_claude
+from services.llm_router import call_llm
+from services.rag_service import retrieve_as_context, is_indexed
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +83,17 @@ def deconstruct_missions(missions: list) -> dict:
         f"{m['id']}: {m['text']}" for m in missions
     )
 
-    user_message = f"""
+    # ── RAG context injection ──────────────────────────────────────────────
+    rag_context = ""
+    if is_indexed():
+        rag_context = retrieve_as_context(
+            query="Department Mission statement education research industry competency",
+            header="## SAR Document Context (retrieved via RAG)",
+        )
+        logger.info("Agent 2: RAG context injected (%d chars)", len(rag_context))
+
+    user_message = f"""\
+{rag_context + chr(10) if rag_context else ""}\
 Deconstruct the following Department Mission statements:
 
 {dm_block}
@@ -88,7 +102,7 @@ Return the JSON object as described in your instructions.
 """.strip()
 
     logger.info("Agent 2 (Mission Deconstructor): Processing %d DMs", len(missions))
-    raw_response = call_claude(_SYSTEM_PROMPT, user_message, temperature=0.1)
+    raw_response = call_llm(_SYSTEM_PROMPT, user_message, temperature=0.1)
     result = _parse_json_response(raw_response, context="Mission deconstruction")
 
     logger.info("Agent 2: Deconstruction complete for keys: %s", list(result.keys()))

@@ -54,6 +54,7 @@ def ingest_document(file_bytes: bytes, filename: str) -> dict:
         "peos": peos,
         "missions": missions,
         "raw_text": raw_text[:8000],   # cap for downstream context
+        "full_text": raw_text,
         "source": filename,
     }
 

@@ -6,6 +6,9 @@ Responsibility:
   that maps each PEO ID to its deconstructed competency components
   (technical skills, soft skills, research, ethics, lifelong learning, etc.).
 
+RAG-enhanced: Retrieves relevant chunks from the indexed SAR document
+to provide richer document context alongside the raw PEO texts.
+
 This output feeds Agent 3 (Correlation Scorer) so it can perform
 semantic cross-referencing with enriched representations instead of raw text.
 """
@@ -14,7 +17,8 @@ import json
 import logging
 import re
 
-from services.llm_client import call_claude
+from services.llm_router import call_llm
+from services.rag_service import retrieve_as_context, is_indexed
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +83,17 @@ def deconstruct_peos(peos: list) -> dict:
         f"{p['id']}: {p['text']}" for p in peos
     )
 
-    user_message = f"""
+    # ── RAG context injection ──────────────────────────────────────────────
+    rag_context = ""
+    if is_indexed():
+        rag_context = retrieve_as_context(
+            query="Program Educational Objectives PEO competency skills",
+            header="## SAR Document Context (retrieved via RAG)",
+        )
+        logger.info("Agent 1: RAG context injected (%d chars)", len(rag_context))
+
+    user_message = f"""\
+{rag_context + chr(10) if rag_context else ""}\
 Deconstruct the following Program Educational Objectives:
 
 {peo_block}
@@ -88,7 +102,7 @@ Return the JSON object as described in your instructions.
 """.strip()
 
     logger.info("Agent 1 (PEO Deconstructor): Processing %d PEOs", len(peos))
-    raw_response = call_claude(_SYSTEM_PROMPT, user_message, temperature=0.1)
+    raw_response = call_llm(_SYSTEM_PROMPT, user_message, temperature=0.1)
     result = _parse_json_response(raw_response, context="PEO deconstruction")
 
     logger.info("Agent 1: Deconstruction complete for keys: %s", list(result.keys()))
@@ -104,15 +118,11 @@ def _parse_json_response(text: str, context: str = "") -> dict:
     Safely parse a JSON object from the LLM response.
     Handles minor formatting issues (stray fences, trailing commas).
     """
-    # Strip markdown fences if present
     cleaned = re.sub(r"```(?:json)?", "", text).strip().rstrip("`").strip()
-
-    # Remove trailing commas before } or ] (common LLM quirk)
     cleaned = re.sub(r",\s*([}\]])", r"\1", cleaned)
 
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError as exc:
         logger.error("JSON parse error in %s: %s\nRaw text:\n%s", context, exc, text[:500])
-        # Return an empty dict so the pipeline degrades gracefully
         return {}

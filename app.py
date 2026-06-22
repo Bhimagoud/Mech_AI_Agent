@@ -15,6 +15,9 @@ import sys
 # Ensure package root is on path
 sys.path.insert(0, os.path.dirname(__file__))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 

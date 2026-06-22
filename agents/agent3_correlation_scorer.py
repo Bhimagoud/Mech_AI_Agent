@@ -7,6 +7,10 @@ Responsibility:
   (1, 2, 3 or "-") per the NBA rubric, plus a 2-sentence justification
   for every non-zero mapping.
 
+RAG-enhanced: Retrieves scoring-rubric and correlation-related document
+sections from the indexed SAR to ground the scoring in actual accreditation
+language used in the institution's own document.
+
 Output Schema (JSON):
 {
   "matrix": {
@@ -25,7 +29,8 @@ import json
 import logging
 import re
 
-from services.llm_client import call_claude
+from services.llm_router import call_llm
+from services.rag_service import retrieve_as_context, is_indexed
 
 logger = logging.getLogger(__name__)
 
@@ -105,18 +110,26 @@ def score_correlations(
     if not peos or not missions:
         return {"matrix": {}, "justifications": {}}
 
+    # ── RAG context injection ──────────────────────────────────────────────
+    rag_context = ""
+    if is_indexed():
+        rag_context = retrieve_as_context(
+            query="correlation scoring rubric PEO mission alignment NBA accreditation",
+            header="## SAR Document Context for Scoring (retrieved via RAG)",
+        )
+        logger.info("Agent 3: RAG context injected (%d chars)", len(rag_context))
+
     user_message = _build_user_message(
-        peos, missions, peo_breakdown, mission_breakdown
+        peos, missions, peo_breakdown, mission_breakdown, rag_context
     )
 
     logger.info(
-        "Agent 3 (Scorer): Scoring %d PEOs × %d DMs", len(peos), len(missions)
+        "Agent 3 (Scorer): Scoring %d PEOs x %d DMs", len(peos), len(missions)
     )
-    raw_response = call_claude(_SYSTEM_PROMPT, user_message, temperature=0.15)
+    raw_response = call_llm(_SYSTEM_PROMPT, user_message, temperature=0.15)
     result = _parse_json_response(raw_response)
 
-    # Validate structure
-    matrix = result.get("matrix", {})
+    matrix         = result.get("matrix", {})
     justifications = result.get("justifications", {})
     logger.info(
         "Agent 3: Matrix produced for %d PEOs; %d justifications",
@@ -134,8 +147,15 @@ def _build_user_message(
     missions: list,
     peo_breakdown: dict,
     mission_breakdown: dict,
+    rag_context: str = "",
 ) -> str:
-    sections = ["## PEOs (Raw + Breakdown)\n"]
+    sections = []
+
+    if rag_context:
+        sections.append(rag_context)
+        sections.append("")
+
+    sections.append("## PEOs (Raw + Breakdown)\n")
     for p in peos:
         pid = p["id"]
         breakdown = peo_breakdown.get(pid, {})
@@ -156,7 +176,7 @@ def _build_user_message(
         sections.append("")
 
     sections.append(
-        "Perform the full PEO × DM cross-referencing and return the JSON object."
+        "Perform the full PEO x DM cross-referencing and return the JSON object."
     )
     return "\n".join(sections)
 

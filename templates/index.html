@@ -136,30 +136,399 @@ textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px
 
 /* ─── Progress / Loading ─────────────────────────────────────────────── */
 #progress-section {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 28px 32px; margin-bottom: 28px;
+  background: rgba(13, 30, 54, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 32px;
+  margin-bottom: 28px;
+  color: #f1f5f9;
   display: none;
+  animation: fadeInProgress 0.4s ease-out;
 }
-.progress-title { font-weight: 700; font-size: 1rem; margin-bottom: 18px; color: var(--navy); }
-.progress-steps { display: flex; flex-direction: column; gap: 12px; }
-.prog-step {
-  display: flex; align-items: center; gap: 14px;
-  padding: 12px 16px; border-radius: 8px; background: var(--bg);
-  border-left: 4px solid var(--border); transition: all .4s;
-}
-.prog-step.running { border-left-color: var(--gold); background: #fffbeb; }
-.prog-step.done    { border-left-color: var(--teal);  background: #f0faf9; }
-.prog-step.error   { border-left-color: var(--accent); background: #fce8e1; }
-.prog-icon { font-size: 1.3rem; width: 28px; text-align: center; }
-.prog-label { font-size: .85rem; font-weight: 600; }
-.prog-sub   { font-size: .75rem; color: var(--muted); margin-top: 2px; }
 
-.spinner {
-  display: inline-block; width: 18px; height: 18px;
-  border: 3px solid var(--border); border-top-color: var(--blue);
-  border-radius: 50%; animation: spin .8s linear infinite;
+@keyframes fadeInProgress {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+.progress-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.ping-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #38bdf8;
+  border-radius: 50%;
+  position: relative;
+}
+.ping-dot::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background-color: #38bdf8;
+  animation: ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes ping {
+  75%, 100% { transform: scale(3.5); opacity: 0; }
+}
+
+.timer-display {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+#stopwatch-val {
+  color: #fbbf24;
+  text-shadow: 0 0 4px rgba(251, 191, 36, 0.4);
+}
+
+.loader-container {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  margin-bottom: 24px;
+}
+@media(max-width:768px) {
+  .loader-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 24px;
+  }
+}
+
+.loader-visual {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svg-progress-circle {
+  position: absolute;
+  transform: rotate(-90deg);
+  width: 120px;
+  height: 120px;
+}
+.circle-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 6;
+}
+.circle-fill {
+  fill: none;
+  stroke: url(#progressGradient);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 314;
+  stroke-dashoffset: 314;
+  transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 5px rgba(232, 93, 28, 0.5));
+}
+
+.percentage-display {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  z-index: 10;
+  text-shadow: 0 0 8px rgba(255,255,255,0.3);
+}
+
+.agent-avatar-orbit {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  animation: spinOrbit 20s linear infinite;
+}
+
+.orbit-agent {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  background: #0b1528;
+  border: 2px solid #1e293b;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #64748b;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#orbit-a1 { top: -13px; left: 57px; }
+#orbit-a2 { top: 57px; right: -13px; }
+#orbit-a3 { bottom: -13px; left: 57px; }
+#orbit-a4 { top: 57px; left: -13px; }
+
+#orbit-a1.active {
+  border-color: #c084fc;
+  color: #fff;
+  background: #6b21a8;
+  box-shadow: 0 0 15px #c084fc;
+  transform: scale(1.2);
+}
+#orbit-a2.active {
+  border-color: #f43f5e;
+  color: #fff;
+  background: #9f1239;
+  box-shadow: 0 0 15px #f43f5e;
+  transform: scale(1.2);
+}
+#orbit-a3.active {
+  border-color: #fbbf24;
+  color: #000;
+  background: #b45309;
+  box-shadow: 0 0 15px #fbbf24;
+  transform: scale(1.2);
+}
+#orbit-a4.active {
+  border-color: #34d399;
+  color: #fff;
+  background: #065f46;
+  box-shadow: 0 0 15px #34d399;
+  transform: scale(1.2);
+}
+
+@keyframes spinOrbit {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loader-content {
+  flex-grow: 1;
+}
+
+.progress-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.current-status-text {
+  font-size: 0.88rem;
+  color: #38bdf8;
+  margin-bottom: 16px;
+  font-weight: 600;
+  height: 22px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-bar-wrapper {
+  width: 100%;
+  height: 6px;
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.progress-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #1d4ed8 0%, #e85d1c 100%);
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(232, 93, 28, 0.4);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.task-checklist {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #64748b;
+  transition: color 0.3s;
+}
+
+.task-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #334155;
+  background: transparent;
+  font-size: 0.6rem;
+  transition: all 0.3s;
+}
+
+.task-item.pending .task-icon::after {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: #334155;
+  border-radius: 50%;
+}
+
+.task-item.active {
+  color: #38bdf8;
+  font-weight: 600;
+}
+.task-item.active .task-icon {
+  border-color: #38bdf8;
+  border-top-color: transparent;
+  animation: miniSpin 1s linear infinite;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.2);
+}
+
+.task-item.done {
+  color: #34d399;
+}
+.task-item.done .task-icon {
+  border-color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+  color: #34d399;
+}
+.task-item.done .task-icon::after {
+  content: '✓';
+  font-weight: 900;
+}
+
+@keyframes miniSpin {
+  100% { transform: rotate(360deg); }
+}
+
+/* Console logs */
+.terminal-log-wrapper {
+  background: #030712;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-family: 'Courier New', Courier, monospace;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  position: relative;
+}
+.terminal-log-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+.terminal-header {
+  background: #090d16;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.terminal-header .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.terminal-header .dot.red { background: #ef4444; }
+.terminal-header .dot.yellow { background: #f59e0b; }
+.terminal-header .dot.green { background: #10b981; }
+.terminal-title {
+  font-size: 0.68rem;
+  color: #64748b;
+  margin-left: 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.terminal-body {
+  padding: 14px 18px;
+  height: 160px;
+  overflow-y: auto;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.terminal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.terminal-body::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+.log-line {
+  color: #e2e8f0;
+  text-shadow: 0 0 2px rgba(226, 232, 240, 0.15);
+}
+.log-line.system { color: #64748b; }
+.log-line.info { color: #38bdf8; text-shadow: 0 0 3px rgba(56, 189, 248, 0.2); }
+.log-line.agent1 { color: #c084fc; text-shadow: 0 0 3px rgba(192, 132, 252, 0.2); }
+.log-line.agent2 { color: #f43f5e; text-shadow: 0 0 3px rgba(244, 63, 94, 0.2); }
+.log-line.agent3 { color: #fbbf24; text-shadow: 0 0 3px rgba(251, 191, 36, 0.2); }
+.log-line.agent4 { color: #34d399; text-shadow: 0 0 3px rgba(52, 211, 153, 0.2); }
+.log-line.success { color: #10b981; font-weight: 700; text-shadow: 0 0 4px rgba(16, 185, 129, 0.3); }
+.log-line.error { color: #f43f5e; font-weight: 700; text-shadow: 0 0 4px rgba(244, 63, 94, 0.3); }
+
+.terminal-body::after {
+  content: '_';
+  color: #38bdf8;
+  font-weight: 700;
+  animation: blink 0.8s infinite;
+  display: inline-block;
+  margin-left: 2px;
+  align-self: flex-start;
+}
+@keyframes blink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
 
 /* ─── Results ────────────────────────────────────────────────────────── */
 #results-section { display: none; }
@@ -360,42 +729,80 @@ table.matrix-tbl {
 
   <!-- Progress section -->
   <div id="progress-section">
-    <div class="progress-title">🔄 Running Multi-Agent Pipeline…</div>
-    <div class="progress-steps">
-      <div class="prog-step" id="ps-ingest">
-        <div class="prog-icon">📂</div>
-        <div>
-          <div class="prog-label">Document Ingestor</div>
-          <div class="prog-sub">Extracting PEOs and Mission statements from document</div>
+    <div class="progress-header-bar">
+      <div class="status-badge">
+        <span class="ping-dot"></span>
+        <span id="status-badge-text">Analysis In Progress</span>
+      </div>
+      <div class="timer-display">
+        ELAPSED: <span id="stopwatch-val">0.0s</span>
+      </div>
+    </div>
+
+    <div class="loader-container">
+      <div class="loader-visual">
+        <svg class="svg-progress-circle" viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1d4ed8" />
+              <stop offset="100%" stop-color="#e85d1c" />
+            </linearGradient>
+          </defs>
+          <circle class="circle-bg" cx="60" cy="60" r="50" />
+          <circle class="circle-fill" id="circle-progress-fill" cx="60" cy="60" r="50" />
+        </svg>
+        <div class="percentage-display" id="percentage-val">0%</div>
+
+        <div class="agent-avatar-orbit">
+          <div class="orbit-agent" id="orbit-a1" title="PEO Deconstructor">A1</div>
+          <div class="orbit-agent" id="orbit-a2" title="Mission Deconstructor">A2</div>
+          <div class="orbit-agent" id="orbit-a3" title="Correlation Scorer">A3</div>
+          <div class="orbit-agent" id="orbit-a4" title="Report Formatter">A4</div>
         </div>
       </div>
-      <div class="prog-step" id="ps-a1">
-        <div class="prog-icon">🔬</div>
-        <div>
-          <div class="prog-label">Agent 1 — PEO Deconstructor</div>
-          <div class="prog-sub">Decomposing each PEO into atomic competency components</div>
+      
+      <div class="loader-content">
+        <div class="progress-title">NBA Multi-Agent Mapping Engine Active</div>
+        <div class="current-status-text" id="current-status-text">Initializing pipeline...</div>
+        
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar-fill" id="progress-bar-fill"></div>
         </div>
+        
+        <ul class="task-checklist">
+          <li class="task-item pending" id="mstep-ingest">
+            <span class="task-icon"></span>
+            <span>Document Ingestor</span>
+          </li>
+          <li class="task-item pending" id="mstep-a1">
+            <span class="task-icon"></span>
+            <span>Agent 1: PEO Deconstructor</span>
+          </li>
+          <li class="task-item pending" id="mstep-a2">
+            <span class="task-icon"></span>
+            <span>Agent 2: Mission Deconstructor</span>
+          </li>
+          <li class="task-item pending" id="mstep-a3">
+            <span class="task-icon"></span>
+            <span>Agent 3: Correlation Scorer</span>
+          </li>
+          <li class="task-item pending" id="mstep-a4">
+            <span class="task-icon"></span>
+            <span>Agent 4: Report Formatter</span>
+          </li>
+        </ul>
       </div>
-      <div class="prog-step" id="ps-a2">
-        <div class="prog-icon">🎯</div>
-        <div>
-          <div class="prog-label">Agent 2 — Mission Deconstructor</div>
-          <div class="prog-sub">Analysing each Department Mission objective dimension</div>
-        </div>
+    </div>
+    
+    <div class="terminal-log-wrapper">
+      <div class="terminal-header">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+        <span class="terminal-title">Agent Execution Console</span>
       </div>
-      <div class="prog-step" id="ps-a3">
-        <div class="prog-icon">🔗</div>
-        <div>
-          <div class="prog-label">Agent 3 — Correlation Scorer</div>
-          <div class="prog-sub">Cross-referencing every PEO–DM pair with NBA rubric</div>
-        </div>
-      </div>
-      <div class="prog-step" id="ps-a4">
-        <div class="prog-icon">📊</div>
-        <div>
-          <div class="prog-label">Agent 4 — Report Formatter</div>
-          <div class="prog-sub">Generating matrix, justifications, and Markdown report</div>
-        </div>
+      <div class="terminal-body" id="terminal-body">
+        <div class="log-line system">Initializing multi-agent mapping framework...</div>
       </div>
     </div>
   </div>
@@ -509,92 +916,302 @@ function handleDrop(e, inputId, cardId) {
    Pipeline progress UX
 ─────────────────────────────────────────────────────────────────────── */
 const STEPS = ['ingest','a1','a2','a3','a4'];
-const SB_MAP = { ingest:'sb-ingest', a1:'sb-a1', a2:'sb-a2', a3:'sb-a3', a4:'sb-a4' };
+let startTime = null;
+let stopwatchInterval = null;
 
-function showProgress() {
+function addLogLine(text, type='system') {
+  const body = document.getElementById('terminal-body');
+  if (!body) return;
+  const div = document.createElement('div');
+  div.className = `log-line ${type}`;
+  
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}.${String(now.getMilliseconds()).padStart(3,'0')}`;
+  
+  div.textContent = `[${timeStr}] ${text}`;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function startStopwatch() {
+  startTime = performance.now();
+  const valEl = document.getElementById('stopwatch-val');
+  if (valEl) valEl.textContent = '0.0s';
+  if (stopwatchInterval) clearInterval(stopwatchInterval);
+  stopwatchInterval = setInterval(() => {
+    const elapsed = (performance.now() - startTime) / 1000;
+    if (valEl) valEl.textContent = elapsed.toFixed(1) + 's';
+  }, 100);
+}
+
+function stopStopwatch() {
+  if (stopwatchInterval) {
+    clearInterval(stopwatchInterval);
+    stopwatchInterval = null;
+  }
+}
+
+function startAnimatedLoader() {
   document.getElementById('progress-section').style.display = 'block';
   document.getElementById('results-section').style.display = 'none';
   hideError();
+  
+  // Reset badge and stopwatch header
+  const statusBadge = document.getElementById('status-badge-text');
+  if (statusBadge) {
+    statusBadge.textContent = 'Analysis In Progress';
+    document.querySelector('.status-badge').style.background = 'rgba(56, 189, 248, 0.15)';
+    document.querySelector('.status-badge').style.borderColor = 'rgba(56, 189, 248, 0.3)';
+    document.querySelector('.status-badge').style.color = '#38bdf8';
+    const pingDot = document.querySelector('.ping-dot');
+    if (pingDot) pingDot.style.backgroundColor = '#38bdf8';
+  }
+  startStopwatch();
+
+  // Reset progress bars
+  const fill = document.getElementById('progress-bar-fill');
+  if (fill) {
+    fill.style.width = '0%';
+    fill.style.background = '';
+  }
+  
+  const circleFill = document.getElementById('circle-progress-fill');
+  if (circleFill) {
+    circleFill.style.strokeDashoffset = '314';
+  }
+  
+  const pctVal = document.getElementById('percentage-val');
+  if (pctVal) {
+    pctVal.textContent = '0%';
+  }
+  
+  // Clear terminal
+  document.getElementById('terminal-body').innerHTML = '';
+  
+  // Reset task list
   STEPS.forEach(s => {
-    setStepState('ps-'+s, '');
-    setStepState(SB_MAP[s], '');
-  });
-}
-
-function setStepState(id, state) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.classList.remove('active','done','error','running');
-  if (state) el.classList.add(state);
-}
-
-function animateSteps(delay=600) {
-  // Simulate step-by-step animation since the backend is synchronous
-  const stateMap = [
-    { ps:'ps-ingest', sb:'sb-ingest' },
-    { ps:'ps-a1',     sb:'sb-a1' },
-    { ps:'ps-a2',     sb:'sb-a2' },
-    { ps:'ps-a3',     sb:'sb-a3' },
-    { ps:'ps-a4',     sb:'sb-a4' },
-  ];
-  stateMap.forEach(({ ps, sb }, i) => {
-    setTimeout(() => {
-      if (i > 0) {
-        setStepState(stateMap[i-1].ps, 'done');
-        setStepState(stateMap[i-1].sb, 'done');
-      }
-      setStepState(ps, 'running');
-      setStepState(sb, 'active');
-    }, i * delay);
-  });
-}
-
-function markAllDone() {
-  STEPS.forEach(s => {
-    setStepState('ps-'+s, 'done');
-    setStepState(SB_MAP[s], 'done');
-  });
-}
-
-function markAllError() {
-  STEPS.forEach(s => {
-    if (document.getElementById('ps-'+s).classList.contains('running')) {
-      setStepState('ps-'+s, 'error');
-      setStepState(SB_MAP[s], 'error');
+    const el = document.getElementById('mstep-' + s);
+    if (el) {
+      el.className = 'task-item pending';
+      el.style.borderColor = '';
+      el.style.color = '';
+      el.style.background = '';
     }
   });
+
+  // Reset orbits
+  document.querySelectorAll('.orbit-agent').forEach(el => {
+    el.classList.remove('active');
+  });
+  
+  addLogLine('Initializing multi-agent mapping framework...', 'system');
+  
+  const statusEl = document.getElementById('current-status-text');
+  if (statusEl) {
+    statusEl.textContent = 'Initializing pipeline...';
+  }
+}
+
+function stopAnimatedLoader(isSuccess = true, errorMsg = '') {
+  stopStopwatch();
+  
+  const fill = document.getElementById('progress-bar-fill');
+  const statusEl = document.getElementById('current-status-text');
+  const pctVal = document.getElementById('percentage-val');
+  const circleFill = document.getElementById('circle-progress-fill');
+  const statusBadge = document.getElementById('status-badge-text');
+  
+  if (isSuccess) {
+    addLogLine('Analysis complete! All agents returned status code 200.', 'success');
+    if (statusEl) statusEl.textContent = 'Analysis Completed!';
+    if (fill) fill.style.width = '100%';
+    if (pctVal) pctVal.textContent = '100%';
+    if (circleFill) circleFill.style.strokeDashoffset = '0';
+    
+    if (statusBadge) {
+      statusBadge.textContent = 'Analysis Complete';
+      const badgeContainer = document.querySelector('.status-badge');
+      if (badgeContainer) {
+        badgeContainer.style.background = 'rgba(52, 211, 153, 0.15)';
+        badgeContainer.style.borderColor = 'rgba(52, 211, 153, 0.3)';
+        badgeContainer.style.color = '#34d399';
+      }
+      const pingDot = document.querySelector('.ping-dot');
+      if (pingDot) pingDot.style.backgroundColor = '#34d399';
+    }
+    
+    STEPS.forEach(s => {
+      const stepEl = document.getElementById('mstep-'+s);
+      if (stepEl) {
+        stepEl.className = 'task-item done';
+        stepEl.style.borderColor = '';
+        stepEl.style.color = '';
+        stepEl.style.background = '';
+      }
+    });
+    document.querySelectorAll('.orbit-agent').forEach(el => el.classList.add('active'));
+  } else {
+    addLogLine(`Fatal Pipeline Error: ${errorMsg}`, 'error');
+    if (statusEl) statusEl.textContent = 'Error Encountered';
+    if (fill) {
+      fill.style.width = '100%';
+      fill.style.background = 'var(--accent)';
+    }
+    if (pctVal) pctVal.textContent = 'ERROR';
+    
+    if (statusBadge) {
+      statusBadge.textContent = 'Error';
+      const badgeContainer = document.querySelector('.status-badge');
+      if (badgeContainer) {
+        badgeContainer.style.background = 'rgba(239, 68, 68, 0.15)';
+        badgeContainer.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+        badgeContainer.style.color = '#ef4444';
+      }
+      const pingDot = document.querySelector('.ping-dot');
+      if (pingDot) pingDot.style.backgroundColor = '#ef4444';
+    }
+    
+    STEPS.forEach(s => {
+      const stepEl = document.getElementById('mstep-'+s);
+      if (stepEl && (stepEl.classList.contains('active') || stepEl.className.includes('pending'))) {
+        stepEl.className = 'task-item pending';
+        stepEl.style.borderColor = 'var(--accent)';
+        stepEl.style.color = 'var(--accent)';
+        stepEl.style.background = '#fce8e1';
+      }
+    });
+  }
+}
+
+function handleStreamProgress(evt) {
+  const fill = document.getElementById('progress-bar-fill');
+  const statusEl = document.getElementById('current-status-text');
+  const pctVal = document.getElementById('percentage-val');
+  const circleFill = document.getElementById('circle-progress-fill');
+  
+  if (evt.message) {
+    addLogLine(evt.message, evt.log_type || 'system');
+    if (statusEl) statusEl.textContent = evt.message;
+  }
+  
+  if (typeof evt.percentage === 'number') {
+    const pct = evt.percentage;
+    if (fill) fill.style.width = `${pct}%`;
+    if (pctVal) pctVal.textContent = `${pct}%`;
+    if (circleFill) {
+      const offset = 314 - (314 * pct / 100);
+      circleFill.style.strokeDashoffset = offset;
+    }
+  }
+  
+  if (evt.step) {
+    const currentIdx = STEPS.indexOf(evt.step);
+    STEPS.forEach((step, idx) => {
+      const stepEl = document.getElementById('mstep-' + step);
+      if (stepEl) {
+        if (idx < currentIdx) {
+          stepEl.className = 'task-item done';
+        } else if (idx === currentIdx) {
+          stepEl.className = 'task-item active';
+        } else {
+          stepEl.className = 'task-item pending';
+        }
+      }
+    });
+    
+    // Orbit active highlight
+    document.querySelectorAll('.orbit-agent').forEach(el => el.classList.remove('active'));
+    if (evt.step.startsWith('a')) {
+      const orb = document.getElementById('orbit-' + evt.step);
+      if (orb) orb.classList.add('active');
+    }
+  }
+}
+
+async function consumeSSEStream(url, options, onComplete, onError) {
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      let errMsg = `HTTP error! Status: ${response.status}`;
+      try {
+        const errJson = await response.json();
+        if (errJson && errJson.error) errMsg = errJson.error;
+      } catch(e) {}
+      throw new Error(errMsg);
+    }
+    
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // save the unfinished line back to the buffer
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        if (trimmed.startsWith('data: ')) {
+          const jsonStr = trimmed.slice(6);
+          let parsed;
+          try {
+            parsed = JSON.parse(jsonStr);
+          } catch(err) {
+            console.error("Failed to parse SSE JSON:", jsonStr, err);
+            continue;
+          }
+          
+          if (parsed.type === 'progress') {
+            handleStreamProgress(parsed);
+          } else if (parsed.type === 'error') {
+            onError(parsed.error);
+            return;
+          } else if (parsed.type === 'complete') {
+            onComplete(parsed.result);
+            return;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    onError(err.message || err);
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────────────
    Run: file upload
-─────────────────────────────────────────────────────────────────────── */
+ ─────────────────────────────────────────────────────────────────────── */
 async function runUploadAnalysis() {
   const sarFile = document.getElementById('sar-file').files[0];
   if (!sarFile) return;
 
-  showProgress();
-  animateSteps(700);
+  startAnimatedLoader();
 
   const fd = new FormData();
   fd.append('sar_file', sarFile);
   const manFile = document.getElementById('manual-file').files[0];
   if (manFile) fd.append('manual_file', manFile);
 
-  try {
-    const resp = await fetch(`${API_BASE}/api/analyze`, { method: 'POST', body: fd });
-    const data = await resp.json();
-    if (!resp.ok || data.status === 'error') throw new Error(data.error || 'Server error');
-    markAllDone();
-    setTimeout(() => renderResults(data), 400);
-  } catch(e) {
-    markAllError();
-    showError(e.message);
-  }
+  await consumeSSEStream(
+    `${API_BASE}/api/analyze/stream`,
+    { method: 'POST', body: fd },
+    (result) => {
+      stopAnimatedLoader(true);
+      setTimeout(() => renderResults(result), 400);
+    },
+    (errorMsg) => {
+      stopAnimatedLoader(false, errorMsg);
+      showError(errorMsg);
+    }
+  );
 }
 
 /* ──────────────────────────────────────────────────────────────────────
    Run: manual entry
-─────────────────────────────────────────────────────────────────────── */
+ ─────────────────────────────────────────────────────────────────────── */
 function parseManualInput(text, prefix) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const items = [];
@@ -626,28 +1243,29 @@ async function runManualAnalysis() {
     showError('Could not parse PEOs/DMs. Use format: "PEO1: text..." per line.'); return;
   }
 
-  showProgress();
-  animateSteps(700);
+  startAnimatedLoader();
 
-  try {
-    const resp = await fetch(`${API_BASE}/api/analyze/manual`, {
+  await consumeSSEStream(
+    `${API_BASE}/api/analyze/manual/stream`,
+    {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ peos, missions }),
-    });
-    const data = await resp.json();
-    if (!resp.ok || data.status === 'error') throw new Error(data.error || 'Server error');
-    markAllDone();
-    setTimeout(() => renderResults(data), 400);
-  } catch(e) {
-    markAllError();
-    showError(e.message);
-  }
+      body: JSON.stringify({ peos, missions })
+    },
+    (result) => {
+      stopAnimatedLoader(true);
+      setTimeout(() => renderResults(result), 400);
+    },
+    (errorMsg) => {
+      stopAnimatedLoader(false, errorMsg);
+      showError(errorMsg);
+    }
+  );
 }
 
 /* ──────────────────────────────────────────────────────────────────────
    Render results
-─────────────────────────────────────────────────────────────────────── */
+ ─────────────────────────────────────────────────────────────────────── */
 function renderResults(data) {
   gResult = data;
   document.getElementById('progress-section').style.display = 'none';
@@ -759,7 +1377,7 @@ function renderBreakdown(data) {
 
 /* ──────────────────────────────────────────────────────────────────────
    Utilities
-─────────────────────────────────────────────────────────────────────── */
+ ─────────────────────────────────────────────────────────────────────── */
 function showError(msg) {
   const el = document.getElementById('error-banner');
   el.textContent = '⚠️  ' + msg;

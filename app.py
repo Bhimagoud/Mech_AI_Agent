@@ -8,6 +8,7 @@ Endpoints:
   GET  /                   – Serve frontend HTML
 """
 
+import json
 import logging
 import os
 import sys
@@ -18,10 +19,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 
-from orchestrator import run_pipeline
+from orchestrator import run_pipeline, run_pipeline_stream
 from services.document_ingestor import ingest_document
 
 # ---------------------------------------------------------------------------
@@ -123,6 +124,90 @@ def analyze_manual():
         return jsonify(result), 422
 
     return jsonify(_serialize_result(result))
+
+
+@app.route("/api/analyze/stream", methods=["POST"])
+def analyze_stream():
+    """
+    Accepts multipart/form-data with:
+      - sar_file   (required) : SAR document (PDF or DOCX)
+      - manual_file (optional): NBA manual PDF
+    Runs the full 4-agent pipeline and streams progress updates using SSE.
+    """
+    if "sar_file" not in request.files:
+        return jsonify({"status": "error", "error": "No SAR file uploaded."}), 400
+
+    sar_file = request.files["sar_file"]
+    sar_bytes = sar_file.read()
+    sar_filename = sar_file.filename
+
+    manual_bytes = None
+    manual_filename = ""
+    if "manual_file" in request.files:
+        mf = request.files["manual_file"]
+        manual_bytes = mf.read()
+        manual_filename = mf.filename
+
+    logger.info("Streamed SAR file: %s (%d bytes)", sar_filename, len(sar_bytes))
+
+    def generate():
+        generator = run_pipeline_stream(
+            sar_bytes=sar_bytes,
+            sar_filename=sar_filename,
+            manual_bytes=manual_bytes,
+            manual_filename=manual_filename,
+        )
+        for item in generator:
+            if item.get("type") == "complete":
+                serialized = _serialize_result(item.get("result"))
+                yield f"data: {json.dumps({'type': 'complete', 'result': serialized})}\n\n"
+            elif item.get("type") == "error":
+                yield f"data: {json.dumps({'type': 'error', 'error': item.get('error')})}\n\n"
+            else:
+                yield f"data: {json.dumps(item)}\n\n"
+
+    return Response(generate(), mimetype="text/event-stream")
+
+
+@app.route("/api/analyze/manual/stream", methods=["POST"])
+def analyze_manual_stream():
+    """
+    Accepts JSON body:
+    {
+      "peos": [{"id": "PEO1", "text": "..."}, ...],
+      "missions": [{"id": "DM1", "text": "..."}, ...]
+    }
+    Runs the full pipeline and streams progress updates using SSE.
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    peos = data.get("peos", [])
+    missions = data.get("missions", [])
+
+    if not peos:
+        return jsonify({"status": "error", "error": "No PEOs provided."}), 400
+    if not missions:
+        return jsonify({"status": "error", "error": "No Mission statements provided."}), 400
+
+    placeholder = "manual_input.txt"
+    logger.info("Streamed manual entry analysis requested.")
+
+    def generate():
+        generator = run_pipeline_stream(
+            sar_bytes=b"manual",
+            sar_filename=placeholder,
+            extra_peos=peos,
+            extra_missions=missions,
+        )
+        for item in generator:
+            if item.get("type") == "complete":
+                serialized = _serialize_result(item.get("result"))
+                yield f"data: {json.dumps({'type': 'complete', 'result': serialized})}\n\n"
+            elif item.get("type") == "error":
+                yield f"data: {json.dumps({'type': 'error', 'error': item.get('error')})}\n\n"
+            else:
+                yield f"data: {json.dumps(item)}\n\n"
+
+    return Response(generate(), mimetype="text/event-stream")
 
 
 @app.route("/api/extract", methods=["POST"])

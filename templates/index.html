@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NBA PEO–Mission Mapping Engine</title>
+<style>
+/* ─── Design tokens ──────────────────────────────────────────────────── */
+:root {
+  --navy:    #0d2240;
+  --blue:    #1a4a8a;
+  --accent:  #e85d1c;
+  --gold:    #f0a500;
+  --teal:    #00a99d;
+  --bg:      #f4f6fa;
+  --surface: #ffffff;
+  --border:  #dde2ec;
+  --text:    #1a1e2e;
+  --muted:   #6b7280;
+  --score3:  #dcfce7;
+  --score2:  #fef9c3;
+  --score1:  #fee2e2;
+  --score0:  #f3f4f6;
+  --radius:  10px;
+  --shadow:  0 2px 12px rgba(13,34,64,.10);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────── */
+header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+  color: #fff;
+  padding: 22px 36px;
+  display: flex; align-items: center; gap: 18px;
+  box-shadow: 0 3px 16px rgba(0,0,0,.25);
+}
+.logo-badge {
+  width: 52px; height: 52px; border-radius: 12px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 900; color: #fff; flex-shrink: 0;
+}
+header h1 { font-size: 1.45rem; font-weight: 700; line-height: 1.2; }
+header p  { font-size: .82rem; opacity: .75; margin-top: 2px; }
+
+/* ─── Layout ─────────────────────────────────────────────────────────── */
+.container { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+
+.pipeline-bar {
+  display: flex; gap: 6px; align-items: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 20px;
+  margin-bottom: 28px; flex-wrap: wrap;
+}
+.step-badge {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .78rem; font-weight: 600; color: var(--muted);
+  padding: 6px 12px; border-radius: 20px; background: var(--bg);
+  border: 1.5px solid var(--border); transition: all .3s;
+}
+.step-badge.active  { color: var(--blue);   border-color: var(--blue);   background: #e9f0fa; }
+.step-badge.done    { color: var(--teal);   border-color: var(--teal);   background: #e6f7f6; }
+.step-badge.error   { color: var(--accent); border-color: var(--accent); background: #fce8e1; }
+.step-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.step-arrow { color: var(--border); font-size: 1rem; }
+
+/* ─── Upload section ─────────────────────────────────────────────────── */
+.upload-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  margin-bottom: 24px;
+}
+@media(max-width:720px){ .upload-grid { grid-template-columns: 1fr; } }
+
+.upload-card {
+  background: var(--surface); border: 2px dashed var(--border);
+  border-radius: var(--radius); padding: 24px;
+  text-align: center; cursor: pointer; transition: all .2s;
+  position: relative;
+}
+.upload-card:hover, .upload-card.dragover {
+  border-color: var(--blue); background: #f0f4ff;
+}
+.upload-card.has-file {
+  border-style: solid; border-color: var(--teal); background: #f0faf9;
+}
+.upload-card input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon { font-size: 2.2rem; margin-bottom: 8px; }
+.upload-card h3 { font-size: .95rem; font-weight: 700; margin-bottom: 4px; }
+.upload-card p  { font-size: .78rem; color: var(--muted); }
+.file-name { font-size: .78rem; color: var(--teal); font-weight: 600; margin-top: 8px; }
+
+/* ─── Manual entry ───────────────────────────────────────────────────── */
+.tab-bar { display: flex; gap: 4px; margin-bottom: 20px; }
+.tab-btn {
+  padding: 8px 20px; border-radius: 8px 8px 0 0; font-size: .85rem;
+  font-weight: 600; cursor: pointer; border: 1.5px solid var(--border);
+  background: var(--bg); color: var(--muted); transition: all .2s;
+}
+.tab-btn.active { background: var(--surface); color: var(--blue); border-bottom-color: var(--surface); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.manual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media(max-width:720px){ .manual-grid { grid-template-columns: 1fr; } }
+
+.manual-group label { font-size: .82rem; font-weight: 700; display: block; margin-bottom: 6px; color: var(--blue); }
+textarea {
+  width: 100%; height: 180px; padding: 12px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: .82rem; font-family: inherit; resize: vertical;
+  background: var(--surface); color: var(--text); line-height: 1.5;
+}
+textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,74,138,.12); }
+
+/* ─── Buttons ────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 28px; border-radius: 8px; font-size: .9rem;
+  font-weight: 700; cursor: pointer; border: none; transition: all .2s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #d04a0e; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(232,93,28,.3); }
+.btn-primary:disabled { background: var(--muted); cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-secondary { background: var(--surface); color: var(--blue); border: 1.5px solid var(--blue); }
+.btn-secondary:hover { background: #e9f0fa; }
+
+/* ─── Progress / Loading ─────────────────────────────────────────────── */
+#progress-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px 32px; margin-bottom: 28px;
+  display: none;
+}
+.progress-title { font-weight: 700; font-size: 1rem; margin-bottom: 18px; color: var(--navy); }
+.progress-steps { display: flex; flex-direction: column; gap: 12px; }
+.prog-step {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 16px; border-radius: 8px; background: var(--bg);
+  border-left: 4px solid var(--border); transition: all .4s;
+}
+.prog-step.running { border-left-color: var(--gold); background: #fffbeb; }
+.prog-step.done    { border-left-color: var(--teal);  background: #f0faf9; }
+.prog-step.error   { border-left-color: var(--accent); background: #fce8e1; }
+.prog-icon { font-size: 1.3rem; width: 28px; text-align: center; }
+.prog-label { font-size: .85rem; font-weight: 600; }
+.prog-sub   { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+
+.spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 3px solid var(--border); border-top-color: var(--blue);
+  border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Results ────────────────────────────────────────────────────────── */
+#results-section { display: none; }
+.results-nav {
+  display: flex; gap: 4px; margin-bottom: 0;
+  border-bottom: 2px solid var(--border);
+}
+.rnav-btn {
+  padding: 10px 22px; font-size: .85rem; font-weight: 700;
+  cursor: pointer; background: none; border: none; color: var(--muted);
+  border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all .2s;
+}
+.rnav-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+.results-panel { display: none; }
+.results-panel.active { display: block; padding-top: 24px; }
+
+/* ─── Summary cards ──────────────────────────────────────────────────── */
+.stat-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px; margin-bottom: 28px;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+  border-top: 4px solid var(--blue);
+}
+.stat-card.green  { border-top-color: var(--teal); }
+.stat-card.orange { border-top-color: var(--gold); }
+.stat-card.red    { border-top-color: var(--accent); }
+.stat-num   { font-size: 2rem; font-weight: 900; color: var(--navy); }
+.stat-label { font-size: .75rem; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+
+/* ─── Correlation matrix ─────────────────────────────────────────────── */
+.matrix-wrapper { overflow-x: auto; margin-bottom: 28px; }
+table.matrix-tbl {
+  border-collapse: collapse; width: 100%;
+  background: var(--surface); border-radius: var(--radius);
+  overflow: hidden; box-shadow: var(--shadow);
+}
+.matrix-tbl th {
+  background: var(--navy); color: #fff;
+  padding: 12px 16px; font-size: .8rem; font-weight: 700; text-align: center;
+}
+.matrix-tbl th:first-child { text-align: left; padding-left: 20px; }
+.matrix-tbl td {
+  padding: 12px 16px; text-align: center; font-weight: 700; font-size: .95rem;
+  border-bottom: 1px solid var(--border);
+}
+.matrix-tbl td:first-child { text-align: left; font-size: .82rem; font-weight: 600; padding-left: 20px; color: var(--blue); }
+.matrix-tbl tr:hover td { background: #f5f8ff; }
+.score-3 { background: var(--score3); color: #166534; }
+.score-2 { background: var(--score2); color: #854d0e; }
+.score-1 { background: var(--score1); color: #991b1b; }
+.score-0 { background: var(--score0); color: var(--muted); }
+.score-avg { background: #e9f0fa; color: var(--navy); font-weight: 800; }
+
+/* ─── Justifications ─────────────────────────────────────────────────── */
+.just-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 14px;
+  overflow: hidden; box-shadow: var(--shadow);
+}
+.just-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; cursor: pointer;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+}
+.just-header:hover { background: #eef2fb; }
+.just-badge {
+  font-size: .75rem; font-weight: 800; padding: 4px 10px;
+  border-radius: 20px; min-width: 52px; text-align: center;
+}
+.badge-3 { background: #dcfce7; color: #166534; }
+.badge-2 { background: #fef9c3; color: #854d0e; }
+.badge-1 { background: #fee2e2; color: #991b1b; }
+.just-ids { font-weight: 700; font-size: .9rem; }
+.just-chevron { margin-left: auto; font-size: .85rem; color: var(--muted); transition: transform .25s; }
+.just-card.open .just-chevron { transform: rotate(180deg); }
+.just-body { padding: 18px 20px; display: none; font-size: .87rem; line-height: 1.7; color: var(--text); }
+.just-card.open .just-body { display: block; }
+.just-peo-text, .just-dm-text {
+  font-size: .78rem; color: var(--muted); background: var(--bg);
+  border-left: 3px solid var(--border); padding: 6px 12px;
+  border-radius: 4px; margin-top: 10px;
+}
+
+/* ─── Markdown panel ─────────────────────────────────────────────────── */
+.markdown-output {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; font-family: 'Courier New', monospace;
+  font-size: .82rem; white-space: pre-wrap; max-height: 600px; overflow-y: auto;
+  line-height: 1.6; color: var(--text);
+}
+.copy-btn-wrap { text-align: right; margin-bottom: 10px; }
+
+/* ─── Error banner ───────────────────────────────────────────────────── */
+.error-banner {
+  background: #fce8e1; border: 1.5px solid var(--accent);
+  border-radius: var(--radius); padding: 16px 20px;
+  color: var(--accent); font-weight: 600; font-size: .88rem;
+  margin-bottom: 20px; display: none;
+}
+
+/* ─── Legend ─────────────────────────────────────────────────────────── */
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .78rem; font-weight: 600;
+}
+.legend-dot { width: 14px; height: 14px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-badge">N</div>
+  <div>
+    <h1>NBA PEO–Mission Mapping Engine</h1>
+    <p>AI-powered multi-agent correlation analysis for SAR Criterion 1 — Washington Accord / OBE aligned</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Pipeline visual -->
+  <div class="pipeline-bar" id="pipeline-bar">
+    <div class="step-badge" id="sb-ingest"><span class="step-dot"></span>Document Ingestor</div>
+    <span class="step-arrow">→</span>
+    <div class="step-badge" id="sb-a1"><span class="step-dot"></span>Agent 1: PEO Deconstructor</div>
+    <span class="step-arrow">→</span>
+    <div class="step-badge" id="sb-a2"><span class="step-dot"></span>Agent 2: Mission Deconstructor</div>
+    <span class="step-arrow">→</span>
+    <div class="step-badge" id="sb-a3"><span class="step-dot"></span>Agent 3: Correlation Scorer</div>
+    <span class="step-arrow">→</span>
+    <div class="step-badge" id="sb-a4"><span class="step-dot"></span>Agent 4: Report Formatter</div>
+  </div>
+
+  <!-- Error banner -->
+  <div class="error-banner" id="error-banner"></div>
+
+  <!-- Input tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('upload')">📄 Upload Documents</button>
+    <button class="tab-btn"        onclick="switchTab('manual')">✏️ Manual Entry</button>
+  </div>
+
+  <!-- Tab: File Upload -->
+  <div class="tab-panel active" id="tab-upload">
+    <div class="upload-grid">
+      <div class="upload-card" id="sar-card" ondragover="handleDrag(event,'sar-card')" ondragleave="leaveDrag('sar-card')" ondrop="handleDrop(event,'sar-file','sar-card')">
+        <input type="file" id="sar-file" accept=".pdf,.docx" onchange="fileChosen('sar-file','sar-card','sar-name')">
+        <div class="upload-icon">📋</div>
+        <h3>SAR Document</h3>
+        <p>PDF or DOCX containing PEOs and Department Missions</p>
+        <div class="file-name" id="sar-name"></div>
+      </div>
+
+      <div class="upload-card" id="manual-card" ondragover="handleDrag(event,'manual-card')" ondragleave="leaveDrag('manual-card')" ondrop="handleDrop(event,'manual-file','manual-card')">
+        <input type="file" id="manual-file" accept=".pdf" onchange="fileChosen('manual-file','manual-card','manual-name')">
+        <div class="upload-icon">📘</div>
+        <h3>NBA Manual (Optional)</h3>
+        <p>NBA UG Tier-I Manual for rubric reference</p>
+        <div class="file-name" id="manual-name">No file selected</div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:8px">
+      <button class="btn btn-primary" id="btn-analyze-upload" onclick="runUploadAnalysis()" disabled>
+        🚀 Run AI Analysis
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab: Manual Entry -->
+  <div class="tab-panel" id="tab-manual">
+    <div class="manual-grid">
+      <div class="manual-group">
+        <label>Program Educational Objectives (PEOs)</label>
+        <textarea id="manual-peos" placeholder="PEO1: Graduates will develop technical skills...&#10;PEO2: Graduates will demonstrate ethical conduct...&#10;PEO3: ..."></textarea>
+        <p style="font-size:.74rem;color:var(--muted);margin-top:5px">Format: PEO1: text … (one per line)</p>
+      </div>
+      <div class="manual-group">
+        <label>Department Mission Statements (DMs)</label>
+        <textarea id="manual-dms" placeholder="DM1: To prepare industry-ready graduates...&#10;DM2: To cultivate a research ecosystem...&#10;DM3: ..."></textarea>
+        <p style="font-size:.74rem;color:var(--muted);margin-top:5px">Format: DM1: text … (one per line)</p>
+      </div>
+    </div>
+
+    <!-- Pre-fill from sample -->
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+      <button class="btn btn-secondary" onclick="loadSample()">Load Sample Data</button>
+      <button class="btn btn-primary" id="btn-analyze-manual" onclick="runManualAnalysis()">
+        🚀 Run AI Analysis
+      </button>
+    </div>
+  </div>
+
+  <!-- Progress section -->
+  <div id="progress-section">
+    <div class="progress-title">🔄 Running Multi-Agent Pipeline…</div>
+    <div class="progress-steps">
+      <div class="prog-step" id="ps-ingest">
+        <div class="prog-icon">📂</div>
+        <div>
+          <div class="prog-label">Document Ingestor</div>
+          <div class="prog-sub">Extracting PEOs and Mission statements from document</div>
+        </div>
+      </div>
+      <div class="prog-step" id="ps-a1">
+        <div class="prog-icon">🔬</div>
+        <div>
+          <div class="prog-label">Agent 1 — PEO Deconstructor</div>
+          <div class="prog-sub">Decomposing each PEO into atomic competency components</div>
+        </div>
+      </div>
+      <div class="prog-step" id="ps-a2">
+        <div class="prog-icon">🎯</div>
+        <div>
+          <div class="prog-label">Agent 2 — Mission Deconstructor</div>
+          <div class="prog-sub">Analysing each Department Mission objective dimension</div>
+        </div>
+      </div>
+      <div class="prog-step" id="ps-a3">
+        <div class="prog-icon">🔗</div>
+        <div>
+          <div class="prog-label">Agent 3 — Correlation Scorer</div>
+          <div class="prog-sub">Cross-referencing every PEO–DM pair with NBA rubric</div>
+        </div>
+      </div>
+      <div class="prog-step" id="ps-a4">
+        <div class="prog-icon">📊</div>
+        <div>
+          <div class="prog-label">Agent 4 — Report Formatter</div>
+          <div class="prog-sub">Generating matrix, justifications, and Markdown report</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results section -->
+  <div id="results-section">
+    <div class="results-nav">
+      <button class="rnav-btn active" onclick="switchResult('summary')">📊 Summary</button>
+      <button class="rnav-btn" onclick="switchResult('matrix')">🔲 Correlation Matrix</button>
+      <button class="rnav-btn" onclick="switchResult('justifications')">📝 Justifications</button>
+      <button class="rnav-btn" onclick="switchResult('markdown')">📄 Markdown Report</button>
+      <button class="rnav-btn" onclick="switchResult('breakdown')">🔍 Agent Breakdowns</button>
+    </div>
+
+    <!-- Summary -->
+    <div class="results-panel active" id="rp-summary">
+      <div class="stat-grid" id="stat-grid"></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+        <h3 style="font-size:.9rem;font-weight:700;margin-bottom:12px;color:var(--navy)">Extracted PEOs</h3>
+        <div id="peo-list"></div>
+        <h3 style="font-size:.9rem;font-weight:700;margin:18px 0 12px;color:var(--navy)">Department Missions</h3>
+        <div id="dm-list"></div>
+      </div>
+    </div>
+
+    <!-- Matrix -->
+    <div class="results-panel" id="rp-matrix">
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--score3)"></div>3 — Substantial</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--score2)"></div>2 — Moderate</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--score1)"></div>1 — Slight</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--score0)"></div>— No Correlation</div>
+      </div>
+      <div class="matrix-wrapper"><table class="matrix-tbl" id="matrix-tbl"></table></div>
+    </div>
+
+    <!-- Justifications -->
+    <div class="results-panel" id="rp-justifications">
+      <div id="just-list"></div>
+    </div>
+
+    <!-- Markdown -->
+    <div class="results-panel" id="rp-markdown">
+      <div class="copy-btn-wrap">
+        <button class="btn btn-secondary" onclick="copyMarkdown()">📋 Copy Markdown</button>
+      </div>
+      <div class="markdown-output" id="markdown-output"></div>
+    </div>
+
+    <!-- Breakdowns -->
+    <div class="results-panel" id="rp-breakdown">
+      <div id="breakdown-content"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ──────────────────────────────────────────────────────────────────────
+   State
+─────────────────────────────────────────────────────────────────────── */
+let gResult = null;
+const API_BASE = window.location.origin;
+
+/* ──────────────────────────────────────────────────────────────────────
+   Tab management
+─────────────────────────────────────────────────────────────────────── */
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['upload','manual'][i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function switchResult(name) {
+  document.querySelectorAll('.rnav-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.querySelectorAll('.results-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('rp-'+name).classList.add('active');
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   File upload helpers
+─────────────────────────────────────────────────────────────────────── */
+function fileChosen(inputId, cardId, nameId) {
+  const f = document.getElementById(inputId).files[0];
+  if (!f) return;
+  document.getElementById(nameId).textContent = f.name;
+  document.getElementById(cardId).classList.add('has-file');
+  checkUploadReady();
+}
+function checkUploadReady() {
+  const hasFile = document.getElementById('sar-file').files.length > 0;
+  document.getElementById('btn-analyze-upload').disabled = !hasFile;
+}
+function handleDrag(e, cardId) {
+  e.preventDefault(); document.getElementById(cardId).classList.add('dragover');
+}
+function leaveDrag(cardId) { document.getElementById(cardId).classList.remove('dragover'); }
+function handleDrop(e, inputId, cardId) {
+  e.preventDefault(); leaveDrag(cardId);
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  const dt = new DataTransfer(); dt.items.add(f);
+  document.getElementById(inputId).files = dt.files;
+  fileChosen(inputId, cardId, inputId === 'sar-file' ? 'sar-name' : 'manual-name');
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Pipeline progress UX
+─────────────────────────────────────────────────────────────────────── */
+const STEPS = ['ingest','a1','a2','a3','a4'];
+const SB_MAP = { ingest:'sb-ingest', a1:'sb-a1', a2:'sb-a2', a3:'sb-a3', a4:'sb-a4' };
+
+function showProgress() {
+  document.getElementById('progress-section').style.display = 'block';
+  document.getElementById('results-section').style.display = 'none';
+  hideError();
+  STEPS.forEach(s => {
+    setStepState('ps-'+s, '');
+    setStepState(SB_MAP[s], '');
+  });
+}
+
+function setStepState(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('active','done','error','running');
+  if (state) el.classList.add(state);
+}
+
+function animateSteps(delay=600) {
+  // Simulate step-by-step animation since the backend is synchronous
+  const stateMap = [
+    { ps:'ps-ingest', sb:'sb-ingest' },
+    { ps:'ps-a1',     sb:'sb-a1' },
+    { ps:'ps-a2',     sb:'sb-a2' },
+    { ps:'ps-a3',     sb:'sb-a3' },
+    { ps:'ps-a4',     sb:'sb-a4' },
+  ];
+  stateMap.forEach(({ ps, sb }, i) => {
+    setTimeout(() => {
+      if (i > 0) {
+        setStepState(stateMap[i-1].ps, 'done');
+        setStepState(stateMap[i-1].sb, 'done');
+      }
+      setStepState(ps, 'running');
+      setStepState(sb, 'active');
+    }, i * delay);
+  });
+}
+
+function markAllDone() {
+  STEPS.forEach(s => {
+    setStepState('ps-'+s, 'done');
+    setStepState(SB_MAP[s], 'done');
+  });
+}
+
+function markAllError() {
+  STEPS.forEach(s => {
+    if (document.getElementById('ps-'+s).classList.contains('running')) {
+      setStepState('ps-'+s, 'error');
+      setStepState(SB_MAP[s], 'error');
+    }
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Run: file upload
+─────────────────────────────────────────────────────────────────────── */
+async function runUploadAnalysis() {
+  const sarFile = document.getElementById('sar-file').files[0];
+  if (!sarFile) return;
+
+  showProgress();
+  animateSteps(700);
+
+  const fd = new FormData();
+  fd.append('sar_file', sarFile);
+  const manFile = document.getElementById('manual-file').files[0];
+  if (manFile) fd.append('manual_file', manFile);
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/analyze`, { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok || data.status === 'error') throw new Error(data.error || 'Server error');
+    markAllDone();
+    setTimeout(() => renderResults(data), 400);
+  } catch(e) {
+    markAllError();
+    showError(e.message);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Run: manual entry
+─────────────────────────────────────────────────────────────────────── */
+function parseManualInput(text, prefix) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const items = [];
+  lines.forEach(line => {
+    const m = line.match(/^([A-Za-z]+\d+)[:\.\s]+(.+)/);
+    if (m) {
+      items.push({ id: m[1].toUpperCase(), text: m[2].trim() });
+    }
+  });
+  // Fallback: numbered lines
+  if (items.length === 0) {
+    lines.forEach((line, i) => {
+      const m = line.match(/^\d+[:\.\)]\s*(.+)/);
+      if (m) items.push({ id: `${prefix}${i+1}`, text: m[1].trim() });
+    });
+  }
+  return items;
+}
+
+async function runManualAnalysis() {
+  const peoText = document.getElementById('manual-peos').value.trim();
+  const dmText  = document.getElementById('manual-dms').value.trim();
+  if (!peoText || !dmText) { showError('Please enter both PEOs and Mission statements.'); return; }
+
+  const peos     = parseManualInput(peoText, 'PEO');
+  const missions = parseManualInput(dmText,  'DM');
+
+  if (!peos.length || !missions.length) {
+    showError('Could not parse PEOs/DMs. Use format: "PEO1: text..." per line.'); return;
+  }
+
+  showProgress();
+  animateSteps(700);
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/analyze/manual`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ peos, missions }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.status === 'error') throw new Error(data.error || 'Server error');
+    markAllDone();
+    setTimeout(() => renderResults(data), 400);
+  } catch(e) {
+    markAllError();
+    showError(e.message);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Render results
+─────────────────────────────────────────────────────────────────────── */
+function renderResults(data) {
+  gResult = data;
+  document.getElementById('progress-section').style.display = 'none';
+  document.getElementById('results-section').style.display = 'block';
+
+  renderSummary(data);
+  renderMatrix(data);
+  renderJustifications(data);
+  renderMarkdown(data);
+  renderBreakdown(data);
+
+  // Switch to summary tab
+  document.querySelectorAll('.rnav-btn')[0].click();
+}
+
+function renderSummary(data) {
+  const s = data.report.summary_stats;
+  const grid = document.getElementById('stat-grid');
+  grid.innerHTML = `
+    <div class="stat-card"><div class="stat-num">${s.total_peos}</div><div class="stat-label">PEOs</div></div>
+    <div class="stat-card"><div class="stat-num">${s.total_dms}</div><div class="stat-label">Department Missions</div></div>
+    <div class="stat-card green"><div class="stat-num">${s.high_correlations}</div><div class="stat-label">High (Score 3)</div></div>
+    <div class="stat-card orange"><div class="stat-num">${s.medium_correlations}</div><div class="stat-label">Medium (Score 2)</div></div>
+    <div class="stat-card red"><div class="stat-num">${s.low_correlations}</div><div class="stat-label">Low (Score 1)</div></div>
+    <div class="stat-card"><div class="stat-num">${s.avg_overall}</div><div class="stat-label">Average Score</div></div>
+  `;
+
+  // PEO list
+  document.getElementById('peo-list').innerHTML = data.peos.map(p =>
+    `<div style="padding:8px 12px;border-left:3px solid var(--blue);margin-bottom:8px;background:var(--bg);border-radius:4px;font-size:.83rem">
+      <strong>${p.id}</strong>: ${p.text}
+    </div>`
+  ).join('');
+
+  // DM list
+  document.getElementById('dm-list').innerHTML = data.missions.map(m =>
+    `<div style="padding:8px 12px;border-left:3px solid var(--teal);margin-bottom:8px;background:var(--bg);border-radius:4px;font-size:.83rem">
+      <strong>${m.id}</strong>: ${m.text}
+    </div>`
+  ).join('');
+}
+
+function renderMatrix(data) {
+  const { matrix_table, dm_ids } = data.report;
+  let html = '<thead><tr><th>PEO Statement</th>';
+  dm_ids.forEach(d => html += `<th>${d}</th>`);
+  html += '<th>Average</th></tr></thead><tbody>';
+
+  matrix_table.forEach(row => {
+    html += `<tr><td>${row.peo_id}</td>`;
+    dm_ids.forEach(d => {
+      const s = row.scores[d];
+      const cls = s === 3 ? 'score-3' : s === 2 ? 'score-2' : s === 1 ? 'score-1' : 'score-0';
+      html += `<td class="${cls}">${s}</td>`;
+    });
+    html += `<td class="score-avg">${row.average}</td></tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('matrix-tbl').innerHTML = html;
+}
+
+function renderJustifications(data) {
+  const { justifications } = data.report;
+  const container = document.getElementById('just-list');
+  container.innerHTML = justifications.map(j => {
+    const bCls = j.score === 3 ? 'badge-3' : j.score === 2 ? 'badge-2' : 'badge-1';
+    return `
+      <div class="just-card" onclick="toggleJust(this)">
+        <div class="just-header">
+          <span class="just-badge ${bCls}">Score: ${j.score}</span>
+          <span class="just-ids">${j.peo_id} ↔ ${j.dm_id}</span>
+          <span class="just-chevron">▼</span>
+        </div>
+        <div class="just-body">
+          <div>${j.text}</div>
+          <div class="just-peo-text"><strong>${j.peo_id}:</strong> ${j.peo_text}</div>
+          <div class="just-dm-text"><strong>${j.dm_id}:</strong> ${j.dm_text}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleJust(el) { el.classList.toggle('open'); }
+
+function renderMarkdown(data) {
+  document.getElementById('markdown-output').textContent = data.report.markdown;
+}
+
+function renderBreakdown(data) {
+  const { peo_breakdown, mission_breakdown } = data;
+  let html = '<h3 style="font-size:.9rem;font-weight:700;color:var(--navy);margin-bottom:16px">PEO Competency Breakdowns (Agent 1 Output)</h3>';
+
+  Object.entries(peo_breakdown || {}).forEach(([pid, b]) => {
+    html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+      <div style="font-weight:700;color:var(--blue);margin-bottom:10px">${pid}</div>
+      <div style="font-size:.8rem;line-height:1.8;font-family:monospace">${JSON.stringify(b, null, 2)}</div>
+    </div>`;
+  });
+
+  html += '<h3 style="font-size:.9rem;font-weight:700;color:var(--navy);margin:24px 0 16px">Mission Objective Breakdowns (Agent 2 Output)</h3>';
+  Object.entries(mission_breakdown || {}).forEach(([did, b]) => {
+    html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+      <div style="font-weight:700;color:var(--teal);margin-bottom:10px">${did}</div>
+      <div style="font-size:.8rem;line-height:1.8;font-family:monospace">${JSON.stringify(b, null, 2)}</div>
+    </div>`;
+  });
+  document.getElementById('breakdown-content').innerHTML = html;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Utilities
+─────────────────────────────────────────────────────────────────────── */
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = '⚠️  ' + msg;
+  el.style.display = 'block';
+}
+function hideError() { document.getElementById('error-banner').style.display = 'none'; }
+
+function copyMarkdown() {
+  const md = document.getElementById('markdown-output').textContent;
+  navigator.clipboard.writeText(md).then(() => alert('Markdown copied!'));
+}
+
+function loadSample() {
+  document.getElementById('manual-peos').value = `PEO1: Develop, design, implement, and maintain technically robust, economically viable, and socially responsible Mechanical Engineering systems, products, and processes.
+PEO2: Apply analytical, computational, and experimental methods to investigate and resolve complex challenges in mechanical and allied engineering domains.
+PEO3: Communicate complex engineering findings effectively using diverse technical communication channels and modern digital tools.
+PEO4: Demonstrate strong collaboration, professional networking, and entrepreneurial aptitude in diverse engineering environments.
+PEO5: Exhibit professionalism, ethical conduct, and teamwork while committing to continuous learning to achieve career, organisational, and societal objectives.`;
+
+  document.getElementById('manual-dms').value = `DM1: Prepare industry-ready graduates through quality, outcome-based education that enhances both cognitive and non-cognitive professional competencies.
+DM2: Cultivate a thriving academic and research ecosystem to achieve the highest levels of engineering competency and innovation.
+DM3: Impart and facilitate state-of-the-art, multidisciplinary education to develop research capability and address complex engineering challenges.`;
+}
+</script>
+</body>
+</html>

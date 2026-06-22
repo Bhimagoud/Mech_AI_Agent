@@ -1,0 +1,45 @@
+# ── Python ────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.Python
+
+# ── Virtual environment ───────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Secrets — NEVER commit ────────────────────────────────────────
+.env
+*.env
+secrets.json
+service_account*.json
+
+# ── App runtime output ────────────────────────────────────────────
+output.json
+*.log
+logs/
+
+# ── OS ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Docker ───────────────────────────────────────────────────────
+# (Dockerfile and .dockerignore ARE committed)
+
+# ── Static placeholder ────────────────────────────────────────────
+static/.gitkeep

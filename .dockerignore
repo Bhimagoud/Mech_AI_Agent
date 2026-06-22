@@ -1,0 +1,39 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Secrets — never bake into image
+.env
+*.env
+
+# Dev / test artefacts
+output.json
+*.log
+logs/
+
+# Git
+.git/
+.gitignore
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Windows launcher (not needed in container)
+run.bat
+run_cli.py
+run_embedding.py
+test_env.py
+README.md

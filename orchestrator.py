@@ -103,15 +103,20 @@ def run_pipeline_stream(
         result["peo_breakdown"] = peo_breakdown
         yield {"type": "progress", "step": "a1", "message": f"Agent 1: Deconstruction complete for PEOs: {list(peo_breakdown.keys())}", "percentage": 50, "log_type": "agent1"}
 
+        import time
+        time.sleep(2)  # Avoid burst rate limits on free-tier APIs
+
         # ------------------------------------------------------------------ #
         # Step 2 – Mission Deconstruction (Agent 2)
         # ------------------------------------------------------------------ #
         yield {"type": "progress", "step": "a2", "message": "Agent 2 (Mission Deconstructor) activated. Processing Missions...", "percentage": 55, "log_type": "agent2"}
         logger.info("[Pipeline] Step 2: Mission Deconstruction (Agent 2)")
-        yield {"type": "progress", "step": "a2", "message": f"Agent 2: Deconstructing {len(missions)} Mission Statements via Groq LLM...", "percentage": 60, "log_type": "agent2"}
+        yield {"type": "progress", "step": "a2", "message": f"Agent 2: Deconstructing {len(missions)} Mission Statements...", "percentage": 60, "log_type": "agent2"}
         mission_breakdown = deconstruct_missions(missions)
         result["mission_breakdown"] = mission_breakdown
         yield {"type": "progress", "step": "a2", "message": f"Agent 2: Deconstruction complete for Missions: {list(mission_breakdown.keys())}", "percentage": 70, "log_type": "agent2"}
+
+        time.sleep(2)  # Avoid burst rate limits on free-tier APIs
 
         # ------------------------------------------------------------------ #
         # Step 3 – Correlation Scoring (Agent 3)

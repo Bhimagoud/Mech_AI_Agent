@@ -12,6 +12,9 @@ import json
 import logging
 import os
 import sys
+import signal
+import threading
+import time
 
 # Ensure package root is on path
 sys.path.insert(0, os.path.dirname(__file__))
@@ -240,6 +243,23 @@ def extract():
         "missions": data["missions"],
         "source": data["source"],
     })
+
+
+@app.route("/api/shutdown", methods=["POST"])
+def shutdown():
+    logger.info("Shutdown requested via API. Terminating servers...")
+    
+    def kill_servers():
+        time.sleep(1) # Allow response to be sent
+        # Kill the MCP Server window if it exists
+        if os.name == 'nt':
+            os.system('taskkill /FI "WINDOWTITLE eq Mech AI Agents MCP Server*" /T /F')
+        
+        # Kill Flask server by sending SIGTERM to self
+        os.kill(os.getpid(), signal.SIGTERM)
+
+    threading.Thread(target=kill_servers).start()
+    return jsonify({"status": "success", "message": "Servers are shutting down..."})
 
 
 # ---------------------------------------------------------------------------

@@ -126,7 +126,7 @@ def score_correlations(
     logger.info(
         "Agent 3 (Scorer): Scoring %d PEOs x %d DMs", len(peos), len(missions)
     )
-    raw_response = call_llm(_SYSTEM_PROMPT, user_message, temperature=0.15)
+    raw_response = call_llm(_SYSTEM_PROMPT, user_message, temperature=0.0)
     result = _parse_json_response(raw_response)
 
     matrix         = result.get("matrix", {})
@@ -186,10 +186,16 @@ def _build_user_message(
 # ---------------------------------------------------------------------------
 
 def _parse_json_response(text: str) -> dict:
-    cleaned = re.sub(r"```(?:json)?", "", text).strip().rstrip("`").strip()
-    cleaned = re.sub(r",\s*([}\]])", r"\1", cleaned)
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError as exc:
-        logger.error("Agent 3 JSON parse error: %s\nRaw:\n%s", exc, text[:800])
+    start_idx = text.find('{')
+    end_idx = text.rfind('}')
+    if start_idx != -1 and end_idx != -1 and end_idx >= start_idx:
+        cleaned = text[start_idx:end_idx+1]
+        cleaned = re.sub(r",\s*([}\]])", r"\1", cleaned)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError as exc:
+            logger.error("Agent 3 JSON parse error: %s\nRaw:\n%s", exc, text[:800])
+            return {"matrix": {}, "justifications": {}}
+    else:
+        logger.error("No JSON braces found in Agent 3 response.\nRaw:\n%s", text[:800])
         return {"matrix": {}, "justifications": {}}

@@ -14,7 +14,7 @@ echo.
 
 REM ── Step 1: Create / activate virtual environment ────────────
 if not exist ".venv\Scripts\activate.bat" (
-    echo [1/3] Creating virtual environment...
+    echo [1/4] Creating virtual environment...
     python -m venv .venv
     if errorlevel 1 (
         echo ERROR: Failed to create virtual environment.
@@ -24,14 +24,17 @@ if not exist ".venv\Scripts\activate.bat" (
     )
     echo       Virtual environment created.
 ) else (
-    echo [1/3] Virtual environment found.
+    echo [1/4] Virtual environment found.
 )
 
 call .venv\Scripts\activate.bat
 
 REM ── Step 2: Install / update dependencies ────────────────────
-echo [2/3] Installing dependencies from requirements.txt...
+echo [2/4] Installing dependencies from requirements.txt...
 pip install -q -r requirements.txt
+if exist "mcp\requirements.txt" (
+    pip install -q -r mcp\requirements.txt
+)
 if errorlevel 1 (
     echo ERROR: pip install failed. Check requirements.txt and internet connection.
     pause
@@ -39,16 +42,24 @@ if errorlevel 1 (
 )
 echo       Dependencies ready.
 
-REM ── Step 3: Launch Flask server ──────────────────────────────
-echo [3/3] Starting Flask server on http://127.0.0.1:5000 ...
+REM ── Step 3: Launch MCP Server ──────────────────────────────
+echo [3/4] Starting MCP Server in a separate window...
+REM We use fastmcp to run the MCP server with SSE transport on port 8080 to avoid conflicts.
+start "Mech AI Agents MCP Server" cmd /c "call .venv\Scripts\activate.bat && fastmcp run mcp/server.py --transport sse --port 8080"
+
+REM ── Step 4: Launch Web server ──────────────────────────────
+echo [4/4] Starting Flask web server on http://127.0.0.1:5000 ...
 echo.
-echo  ^>^>^> Open your browser at:  http://127.0.0.1:5000
-echo  ^>^>^> Press Ctrl+C to stop the server.
+echo  ^>^>^> Automatically opening your browser...
+echo  ^>^>^> Press Ctrl+C in this window to stop the web server.
 echo.
 
 set FLASK_APP=app.py
 set FLASK_ENV=development
 set DEBUG=false
+
+REM Open the default browser to the Flask frontend
+start http://127.0.0.1:5000
 
 python app.py
 

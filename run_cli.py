@@ -45,7 +45,7 @@ def main():
     args = parser.parse_args()
 
     if args.sample:
-        print("▶ Running pipeline with sample data...")
+        print("-> Running pipeline with sample data...")
         result = run_pipeline(
             sar_bytes=b"sample",
             sar_filename="sample_sar.txt",
@@ -60,7 +60,7 @@ def main():
             with open(args.manual, "rb") as f:
                 manual_bytes = f.read()
 
-        print(f"▶ Running pipeline on: {args.sar}")
+        print(f"-> Running pipeline on: {args.sar}")
         result = run_pipeline(
             sar_bytes=sar_bytes,
             sar_filename=os.path.basename(args.sar),
@@ -72,10 +72,10 @@ def main():
         sys.exit(1)
 
     if result["status"] == "error":
-        print(f"\n❌ Pipeline failed: {result['error']}")
+        print(f"\n[X] Pipeline failed: {result['error']}")
         sys.exit(1)
 
-    print("\n✅ Pipeline completed successfully!\n")
+    print("\n[OK] Pipeline completed successfully!\n")
 
     # Print markdown report to stdout
     print("=" * 70)
@@ -85,7 +85,7 @@ def main():
     # Save full JSON
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
-    print(f"\n📁 Full JSON output saved to: {args.output}")
+    print(f"\n[Folder] Full JSON output saved to: {args.output}")
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NBA PEO–Mission Mapping Engine</title>
+<title>Mech-AI-Accredation</title>
 <style>
 /* ─── Design tokens ──────────────────────────────────────────────────── */
 :root {
@@ -645,10 +645,16 @@ table.matrix-tbl {
 <body>
 
 <header>
-  <div class="logo-badge">N</div>
+  <div class="logo-badge">M</div>
   <div>
-    <h1>NBA PEO–Mission Mapping Engine</h1>
+    <h1>Mech-AI-Accredation</h1>
     <p>AI-powered multi-agent correlation analysis for SAR Criterion 1 — Washington Accord / OBE aligned</p>
+  </div>
+  <div style="margin-left: auto;">
+    <button id="btn-terminate" onclick="terminateServers()" style="background: #ef4444; color: white; border: none; padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; transition: background 0.2s;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+      Terminate Servers
+    </button>
   </div>
 </header>
 
@@ -680,7 +686,8 @@ table.matrix-tbl {
       <label for="llm-provider" style="font-size: 0.85rem; color: var(--slate); font-weight: 600;">LLM Provider:</label>
       <select id="llm-provider" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); font-family: inherit; font-size: 0.85rem; background: var(--surface); color: var(--navy); outline: none;">
         <option value="groq">Groq (Llama-3)</option>
-        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openai">OpenAI (GPT)</option>
+        <option value="gemini">Google (Gemini)</option>
       </select>
     </div>
   </div>
@@ -850,13 +857,17 @@ table.matrix-tbl {
 
     <!-- Justifications -->
     <div class="results-panel" id="rp-justifications">
+      <div class="copy-btn-wrap" style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px;">
+        <button class="btn btn-secondary" onclick="downloadJustifications()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px; position: relative; top: -1px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download Justifications (.txt)</button>
+      </div>
       <div id="just-list"></div>
     </div>
 
     <!-- Markdown -->
     <div class="results-panel" id="rp-markdown">
-      <div class="copy-btn-wrap">
+      <div class="copy-btn-wrap" style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px;">
         <button class="btn btn-secondary" onclick="copyMarkdown()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px; position: relative; top: -1px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>Copy Markdown</button>
+        <button class="btn btn-secondary" onclick="downloadMarkdown()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px; position: relative; top: -1px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download Report (.md)</button>
       </div>
       <div class="markdown-output" id="markdown-output"></div>
     </div>
@@ -1408,6 +1419,45 @@ function copyMarkdown() {
   navigator.clipboard.writeText(md).then(() => alert('Markdown copied!'));
 }
 
+function downloadMarkdown() {
+  const md = document.getElementById('markdown-output').textContent;
+  if (!md) return alert('No report available to download yet.');
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'NBA_SAR_Report.md';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadJustifications() {
+  const justContainer = document.getElementById('just-list');
+  const items = justContainer.querySelectorAll('.just-item');
+  if (items.length === 0) return alert('No justifications available to download yet.');
+  
+  let text = "NBA SAR - Pedagogical Justifications\n";
+  text += "====================================\n\n";
+  
+  items.forEach(item => {
+    const title = item.querySelector('.just-title').textContent;
+    const body = item.querySelector('.just-body').textContent;
+    text += `${title}\n${body}\n\n`;
+  });
+  
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Pedagogical_Justifications.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function loadSample() {
   document.getElementById('manual-peos').value = `PEO1: Develop, design, implement, and maintain technically robust, economically viable, and socially responsible Mechanical Engineering systems, products, and processes.
 PEO2: Apply analytical, computational, and experimental methods to investigate and resolve complex challenges in mechanical and allied engineering domains.
@@ -1419,6 +1469,20 @@ PEO5: Exhibit professionalism, ethical conduct, and teamwork while committing to
 DM2: Cultivate a thriving academic and research ecosystem to achieve the highest levels of engineering competency and innovation.
 DM3: Impart and facilitate state-of-the-art, multidisciplinary education to develop research capability and address complex engineering challenges.`;
 }
+
+  async function terminateServers() {
+    if (confirm("Are you sure you want to shut down both the MCP Server and the Local Flask Web Server?")) {
+      try {
+        const btn = document.getElementById("btn-terminate");
+        btn.innerText = "Shutting down...";
+        btn.style.background = "var(--muted)";
+        await fetch('/api/shutdown', { method: 'POST' });
+        alert("Servers have been terminated successfully. You can now safely close this browser tab.");
+      } catch (err) {
+        alert("Servers have been terminated. You can now close this tab.");
+      }
+    }
+  }
 </script>
 </body>
 </html>

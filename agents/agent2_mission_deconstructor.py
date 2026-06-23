@@ -102,7 +102,7 @@ Return the JSON object as described in your instructions.
 """.strip()
 
     logger.info("Agent 2 (Mission Deconstructor): Processing %d DMs", len(missions))
-    raw_response = call_llm(_SYSTEM_PROMPT, user_message, temperature=0.1)
+    raw_response = call_llm(_SYSTEM_PROMPT, user_message, temperature=0.0)
     result = _parse_json_response(raw_response, context="Mission deconstruction")
 
     logger.info("Agent 2: Deconstruction complete for keys: %s", list(result.keys()))
@@ -114,10 +114,16 @@ Return the JSON object as described in your instructions.
 # ---------------------------------------------------------------------------
 
 def _parse_json_response(text: str, context: str = "") -> dict:
-    cleaned = re.sub(r"```(?:json)?", "", text).strip().rstrip("`").strip()
-    cleaned = re.sub(r",\s*([}\]])", r"\1", cleaned)
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError as exc:
-        logger.error("JSON parse error in %s: %s\nRaw:\n%s", context, exc, text[:500])
+    start_idx = text.find('{')
+    end_idx = text.rfind('}')
+    if start_idx != -1 and end_idx != -1 and end_idx >= start_idx:
+        cleaned = text[start_idx:end_idx+1]
+        cleaned = re.sub(r",\s*([}\]])", r"\1", cleaned)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError as exc:
+            logger.error("JSON parse error in %s: %s\nRaw:\n%s", context, exc, text[:500])
+            return {}
+    else:
+        logger.error("No JSON braces found in %s response.\nRaw:\n%s", context, text[:500])
         return {}

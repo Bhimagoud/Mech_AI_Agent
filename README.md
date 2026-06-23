@@ -69,8 +69,9 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# Edit .env and set ANTHROPIC_API_KEY=sk-ant-...
-export ANTHROPIC_API_KEY=sk-ant-your-key-here
+# Edit .env and set OPENAI_API_KEY=sk-proj-... and GEMINI_API_KEY=AIza...
+export OPENAI_API_KEY=sk-proj-your-key-here
+export GEMINI_API_KEY=AIza-your-key-here
 ```
 
 ### 3a. Start the web server
@@ -165,7 +166,7 @@ nba_mapper/
 │   └── agent4_report_formatter.py  # Deterministic (no LLM)
 ├── services/
 │   ├── document_ingestor.py        # PDF/DOCX parser
-│   └── llm_client.py               # Anthropic API wrapper
+│   └── llm_client.py               # LLM router legacy wrapper
 └── templates/
     └── index.html                  # Single-page frontend
 ```
